@@ -5,10 +5,7 @@ module Nsqcd
   module Worker
     attr_reader :queue, :id, :opts
 
-    # For now, a worker is hardly dependant on these concerns
-    # (because it uses methods from them directly.)
     include Concerns::Logging
-    include Concerns::Metrics
     include Nsqcd::ErrorReporter
 
     def initialize(queue = nil, pool = nil, opts = {})
@@ -19,7 +16,6 @@ module Nsqcd
       @should_ack =  opts[:ack]
       @pool = pool || Concurrent::FixedThreadPool.new(opts[:threads] || Nsqcd::Configuration::DEFAULTS[:threads])
       @call_with_params = respond_to?(:work_with_params)
-      @content_type = opts[:content_type]
 
       @queue = queue || Nsqcd::Queue.new(
         queue_name,

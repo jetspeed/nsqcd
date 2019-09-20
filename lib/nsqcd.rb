@@ -93,7 +93,6 @@ module Nsqcd
 
   def setup_worker_concerns!
     Worker.configure_logger(Nsqcd::logger)
-    Worker.configure_metrics(CONFIG[:metrics])
     CONFIG[:handler] ||= Nsqcd::Handlers::Oneshot
   end
 end
