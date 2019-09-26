@@ -51,8 +51,6 @@ module Nsqcd
 
     def merge!(hash)
       hash = hash.dup
-      hash = map_all_deprecated_options(hash)
-
       @hash = deep_merge(@hash, hash)
     end
 
