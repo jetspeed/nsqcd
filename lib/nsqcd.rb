@@ -13,7 +13,6 @@ require 'nsqcd/configuration'
 require 'nsqcd/errors'
 require 'nsqcd/support/production_formatter'
 require 'nsqcd/concerns/logging'
-require 'nsqcd/middleware/config'
 require 'nsqcd/worker'
 
 module Nsqcd
@@ -74,10 +73,6 @@ module Nsqcd
   # Ripped off from https://github.com/mperham/sidekiq/blob/6ad6a3aa330deebd76c6cf0d353f66abd3bef93b/lib/sidekiq.rb#L165-L174
   def error_reporters
     CONFIG[:error_reporters]
-  end
-
-  def middleware
-    @middleware ||= Nsqcd::Middleware::Config
   end
 
   private
