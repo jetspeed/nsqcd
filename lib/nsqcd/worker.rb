@@ -1,15 +1,15 @@
-require 'nsqcd/queue'
 require 'nsqcd/support/utils'
+require 'nsq'
 
 module Nsqcd
   module Worker
-    attr_reader :topic, :id, :opts
+    attr_reader :topic, :channel, :id, :opts
 
     include Concerns::Logging
     include Nsqcd::ErrorReporter
 
-    def initialize(topic = nil, pool = nil, opts = {})
-      opts = opts.merge(self.class.queue_opts || {})
+    def initialize(pool = nil, opts = {})
+      opts = opts.merge(self.class.opts || {})
       opts = Nsqcd::CONFIG.merge(opts)
 
       @pool = pool || Concurrent::FixedThreadPool.new(opts[:threads] || Nsqcd::Configuration::DEFAULTS[:threads])
@@ -17,17 +17,20 @@ module Nsqcd
       @content_type = opts[:content_type]
 
       @opts = opts
-      @id = Utils.make_worker_id(queue_name)
+      @id = Utils.make_worker_id(self.class.name)
     end
 
     def reject!; :reject; end
     def requeue!; :requeue; end
 
     def run
-      worker_trace "New worker: #{self.class}."
+      worker_trace "New worker: #{self.class} running."
       consumer = Nsq::Consumer.new(opts)
-      do_work(consumer.pop)
-      worker_trace "New worker: I'm alive."
+      loop do 
+        msg = consumer.pop
+        do_work(msg)
+        msg.finish
+      end
     end
 
     def publish(msg, opts)
@@ -38,7 +41,7 @@ module Nsqcd
 
 
     def do_work(msg)
-      worker_trace "Working off: #{msg.inspect}"
+      worker_trace "Working off: #{msg.data.inspect} #{msg.body}"
 
       @pool.post do
         process_work(msg)
@@ -46,23 +49,14 @@ module Nsqcd
     end
 
     def process_work(msg)
-      res = nil
       begin
-        metrics.increment("work.#{self.class.name}.started")
-        metrics.timing("work.#{self.class.name}.time") do
-          work(deserialized_msg)
-        end
+        work(msg)
       rescue StandardError, ScriptError => ex
-        res = :error
         worker_error(ex, log_msg: log_msg(msg), class: self.class.name, message: msg)
       end
-      metrics.increment("work.#{self.class.name}.handled.#{res || 'noop'}")
-      metrics.increment("work.#{self.class.name}.ended")
     end
 
     def stop
-      worker_trace "Stopping worker: unsubscribing."
-      @queue.unsubscribe
       worker_trace "Stopping worker: shutting down thread pool."
       @pool.shutdown
       @pool.wait_for_termination
@@ -71,7 +65,7 @@ module Nsqcd
     # Construct a log message with some standard prefix for this worker
     #
     def log_msg(msg)
-      "[#{@id}][#{Thread.current}][#{@queue.name}][#{@queue.opts}] #{msg}"
+      "[#{@id}][#{Thread.current}][#{self.class.name}] #{msg}"
     end
 
     def worker_trace(msg)
@@ -88,8 +82,7 @@ module Nsqcd
     module ClassMethods
       attr_reader :topic, :channel, :opts
 
-      def from(t, opts={})
-        @topic = t.to_s
+      def from(opts={})
         @opts = opts
       end
 

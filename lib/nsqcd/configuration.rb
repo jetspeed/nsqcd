@@ -27,7 +27,8 @@ module Nsqcd
       :metrics            => nil,
       :daemonize          => false,
       :start_worker_delay => 0.2,
-      :workers            => 4,
+      :workers            => 2,
+      :heartbeat          => 30,
       :log                => STDOUT,
       :pid_path           => 'nsqcd.pid',
 

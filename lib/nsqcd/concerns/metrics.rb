@@ -1,6 +1,6 @@
-require 'sneakers/metrics/null_metrics'
+require 'nsqcd/metrics/null_metrics'
 
-module Sneakers
+module Nsqcd 
   module Concerns
     module Metrics
       def self.included(base)
@@ -23,7 +23,7 @@ module Sneakers
           if metrics
             @metrics = metrics
           else
-            @metrics = Sneakers::Metrics::NullMetrics.new
+            @metrics = Nsqcd::Metrics::NullMetrics.new
           end
         end
       end

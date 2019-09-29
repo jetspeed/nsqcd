@@ -33,7 +33,7 @@ module Nsqcd
       # the queue used in the worker will create a new one
 
       @workers = worker_classes.map do |worker_class|
-        worker_class.new(nil, pool, { connection: config[:connection] })
+        worker_class.new( pool, { connection: config[:connection] })
       end
 
       # if more than one worker this should be per worker
@@ -43,7 +43,7 @@ module Nsqcd
       end
       # end per worker
       #
-      until @stop_flag.wait_for_set(Nsqcd::CONFIG[:amqp_heartbeat])
+      until @stop_flag.wait_for_set(Nsqcd::CONFIG[:heartbeat])
         Nsqcd.logger.debug("Heartbeat: running threads [#{Thread.list.count}]")
         # report aggregated stats?
       end
