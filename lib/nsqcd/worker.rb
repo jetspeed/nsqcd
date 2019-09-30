@@ -9,14 +9,17 @@ module Nsqcd
     include Nsqcd::ErrorReporter
 
     def initialize(pool = nil, opts = {})
-      opts = opts.merge(self.class.opts || {})
-      opts = Nsqcd::CONFIG.merge(opts)
+      worker_opts = opts.merge(self.class.opts || {})
+      worker_opts = Nsqcd::CONFIG.merge(worker_opts)
 
-      @pool = pool || Concurrent::FixedThreadPool.new(opts[:threads] || Nsqcd::Configuration::DEFAULTS[:threads])
+      @pool = pool || Concurrent::FixedThreadPool.new(worker_opts[:threads] || Nsqcd::Configuration::DEFAULTS[:threads])
       @call_with_params = respond_to?(:work_with_params)
-      @content_type = opts[:content_type]
 
-      @opts = opts
+      @opts = worker_opts
+      puts '=================='
+      puts "#{self.class.name} #{@opts.inspect}"
+      puts '=================='
+
       @id = Utils.make_worker_id(self.class.name)
     end
 
@@ -25,11 +28,15 @@ module Nsqcd
 
     def run
       worker_trace "New worker: #{self.class} running."
-      consumer = Nsq::Consumer.new(opts)
-      loop do 
-        msg = consumer.pop
-        do_work(msg)
-        msg.finish
+      consumer = Nsq::Consumer.new(@opts)
+      @pool.post do
+        loop do 
+          msg = consumer.pop
+
+          worker_trace "Working off: #{msg.data.inspect} #{msg.body}"
+          process_work(msg)
+          msg.finish
+        end
       end
     end
 
@@ -38,16 +45,7 @@ module Nsqcd
       producer = Nsq::Producer.new(opts[:nsqlookupd], topic)
       producer.write(msg)
     end
-
-
-    def do_work(msg)
-      worker_trace "Working off: #{msg.data.inspect} #{msg.body}"
-
-      @pool.post do
-        process_work(msg)
-      end
-    end
-
+    
     def process_work(msg)
       begin
         work(msg)
@@ -82,13 +80,13 @@ module Nsqcd
     module ClassMethods
       attr_reader :topic, :channel, :opts
 
-      def from(opts={})
-        @opts = opts
+      def from(o ={})
+        @opts = o
       end
 
-      def enqueue(msg, opts={})
-        opts[:to_queue] ||= @topic
-        publisher.publish(msg, opts)
+      def enqueue(msg, o={})
+        @opts[:to_queue] ||= @topic
+        publisher.publish(msg, o)
       end
 
       private

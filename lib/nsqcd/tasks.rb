@@ -37,6 +37,7 @@ EOF
       exit(1)
     end
     opts = (!ENV['WORKER_COUNT'].nil? ? {:workers => ENV['WORKER_COUNT'].to_i} : {})
+    puts workers.inspect
     r = Nsqcd::Runner.new(workers, opts)
 
     r.run

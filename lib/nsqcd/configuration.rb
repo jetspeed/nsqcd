@@ -28,14 +28,14 @@ module Nsqcd
       :daemonize          => false,
       :start_worker_delay => 0.2,
       :workers            => 2,
-      :heartbeat          => 30,
+      :heartbeat          => 300,
       :log                => STDOUT,
       :pid_path           => 'nsqcd.pid',
 
       # workers
       :prefetch           => 10,
       :threads            => 10,
-      :share_threads      => false,
+      :share_threads      => true,
       :ack                => true,
       :hooks              => {},
       :queue_options      => QUEUE_OPTION_DEFAULTS
