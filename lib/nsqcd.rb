@@ -1,6 +1,7 @@
 require 'nsqcd/version'
 require 'logger'
 require 'serverengine'
+require 'connection_pool'
 
 module Nsqcd
   module Handlers
@@ -14,6 +15,8 @@ require 'nsqcd/errors'
 require 'nsqcd/support/production_formatter'
 require 'nsqcd/concerns/logging'
 require 'nsqcd/worker'
+require 'nsqcd/pool'
+require 'nsqcd/producer'
 
 module Nsqcd
   extend self
@@ -26,6 +29,10 @@ module Nsqcd
     setup_general_logger!
     setup_worker_concerns!
     @configured = true
+  end
+
+  def init!
+    $pool = Pool.new
   end
 
   def clear!
